@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================
+// ENUMS
+// ==========================
+enum UserRole {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  READY_FOR_PICKUP
+  PAID
+  CANCELLED
+}
+
+// ==========================
+// MODELS
+// ==========================
+model User {
+  id                     String      @id @default(cuid())
+  clerkId                String      @unique
+  firstName              String?
+  lastName               String?
+  email                  String?     @unique
+  role                   UserRole    @default(BUYER)
+  imageUrl               String?
+  phone                  String?
+  location               String?
+  hasCompletedOnboarding Boolean     @default(false)
+  createdAt              DateTime    @default(now())
+
+  // Relations
+  products               Product[]   @relation("UserProducts")
+  orders                 Order[]     @relation("UserOrders")
+  cart                   Cart?
+}
+
+// Seller’s products (spare parts)
+model Product {
+  id           String         @id @default(cuid())
+  name         String
+  description  String?
+  price        Float
+  condition    String
+  category     String?
+  createdAt    DateTime       @default(now())
+
+  // Relations
+  seller       User?          @relation("UserProducts", fields: [sellerId], references: [id], onDelete: SetNull)
+  sellerId     String?
+  orderItems   OrderItem[]
+  images       ProductImage[] @relation("ProductImages")
+  cartItems    CartItem[]
+}
+
+// Product images (from UploadThing)
+model ProductImage {
+  id         String    @id @default(cuid())
+  imageUrl   String
+  product    Product?  @relation("ProductImages", fields: [productId], references: [id], onDelete: SetNull)
+  productId  String?
+  createdAt  DateTime  @default(now())
+}
+
+// Buyer’s order
+model Order {
+  id               String           @id @default(cuid())
+  buyer            User?            @relation("UserOrders", fields: [buyerId], references: [id], onDelete: SetNull)
+  buyerId          String?
+  totalAmount      Float
+  status           OrderStatus      @default(PENDING)
+  pickupLocation   PickupLocation?  @relation(fields: [pickupLocationId], references: [id], onDelete: SetNull)
+  pickupLocationId String?
+  createdAt        DateTime         @default(now())
+
+  // Relations
+  items            OrderItem[]
+}
+
+// Items inside an order
+model OrderItem {
+  id        String   @id @default(cuid())
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  orderId   String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productId String?
+  quantity  Int
+  price     Float
+}
+
+// ==========================
+// CART MODELS
+// ==========================
+model Cart {
+  id        String      @id @default(cuid())
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?     @unique
+  createdAt DateTime    @default(now())
+
+  items     CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cart      Cart?    @relation(fields: [cartId], references: [id], onDelete: SetNull)
+  cartId    String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productId String?
+  quantity  Int      @default(1)
+}
+
+// ==========================
+// PICKUP LOCATIONS
+// ==========================
+model PickupLocation {
+  id       String   @id @default(cuid())
+  name     String
+  address  String
+  city     String
+  contact  String?
+  orders   Order[]
+}
