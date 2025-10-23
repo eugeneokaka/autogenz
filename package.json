@@ -9,6 +9,11 @@
     "lint": "eslint",
     "postinstall": "prisma generate"
   },
+  "prisma": {
+    "engines": {
+      "queryEngineType": "binary"
+    }
+  },
   "dependencies": {
     "@clerk/nextjs": "^6.34.0",
     "@prisma/client": "^6.18.0",
