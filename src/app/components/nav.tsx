@@ -18,7 +18,6 @@ export default function Navbar() {
           <span className="text-white font-bold font-sans bg-gray-900 px-2 py-1 rounded-md">
             AutopartZ
           </span>
-          <span className="text-gray-500 pl-2.5">garage</span>
         </Link>
 
         {/* Desktop Links */}
@@ -55,50 +54,46 @@ export default function Navbar() {
             <ShoppingCart className="h-6 w-6 text-gray-700 hover:text-black transition" />
           </Link>
 
-          {/* Hamburger Icon */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 rounded-md hover:bg-gray-100 transition"
-          >
-            {menuOpen ? (
-              <X className="h-6 w-6 text-gray-800" />
-            ) : (
-              <Menu className="h-6 w-6 text-gray-800" />
-            )}
-          </button>
+          {/* If NOT signed in → Show Login button instead of hamburger */}
+          {!isSignedIn ? (
+            <SignInButton mode="modal">
+              <Button className="bg-black text-white hover:bg-gray-800 px-3 py-1 text-sm">
+                Login
+              </Button>
+            </SignInButton>
+          ) : (
+            // If signed in → Show Hamburger
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-2 rounded-md hover:bg-gray-100 transition"
+            >
+              {menuOpen ? (
+                <X className="h-6 w-6 text-gray-800" />
+              ) : (
+                <Menu className="h-6 w-6 text-gray-800" />
+              )}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Mobile Dropdown Menu */}
-      {menuOpen && (
+      {/* Mobile Dropdown Menu (only for logged-in users) */}
+      {isSignedIn && menuOpen && (
         <div className="md:hidden bg-white border-t border-gray-200 shadow-md animate-slideDown">
           <div className="px-4 py-3 flex flex-col gap-4">
-            {isSignedIn && (
-              <Link
-                href="/dashboard"
-                onClick={() => setMenuOpen(false)}
-                className="text-gray-700 hover:text-black"
-              >
-                <Button className="w-full bg-gray-800 text-white hover:bg-gray-300 hover:text-black">
-                  Dashboard
-                </Button>
-              </Link>
-            )}
+            <Link
+              href="/dashboard"
+              onClick={() => setMenuOpen(false)}
+              className="text-gray-700 hover:text-black"
+            >
+              <Button className="w-full bg-gray-800 text-white hover:bg-gray-300 hover:text-black">
+                Dashboard
+              </Button>
+            </Link>
 
-            {isSignedIn ? (
-              <div className="flex justify-start">
-                <UserButton afterSignOutUrl="/" />
-              </div>
-            ) : (
-              <SignInButton mode="modal">
-                <Button
-                  className="w-full bg-black text-white hover:bg-gray-800"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Login
-                </Button>
-              </SignInButton>
-            )}
+            <div className="flex justify-start">
+              <UserButton afterSignOutUrl="/" />
+            </div>
           </div>
         </div>
       )}
