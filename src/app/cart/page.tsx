@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useUser } from "@clerk/nextjs";
+import { useUser, SignInButton } from "@clerk/nextjs";
 import { Loader2, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,15 +29,21 @@ interface PickupLocation {
 }
 
 export default function CartPage() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const [items, setItems] = useState<CartItem[]>([]);
   const [pickupLocations, setPickupLocations] = useState<PickupLocation[]>([]);
   const [selectedPickupId, setSelectedPickupId] = useState("");
   const [loading, setLoading] = useState(true);
   const [placingOrder, setPlacingOrder] = useState(false);
 
+  // 🛒 Load cart items
   useEffect(() => {
-    if (!user) return;
+    if (!isLoaded) return; // Wait until Clerk is loaded
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const fetchCart = async () => {
       try {
         const res = await fetch(`/api/cart?userClerkId=${user.id}`);
@@ -52,8 +58,9 @@ export default function CartPage() {
       }
     };
     fetchCart();
-  }, [user]);
+  }, [user, isLoaded]);
 
+  // 📍 Load pickup locations
   useEffect(() => {
     const fetchPickupLocations = async () => {
       try {
@@ -82,7 +89,7 @@ export default function CartPage() {
       setItems((prev) =>
         prev.map((i) => (i.id === itemId ? { ...i, quantity } : i))
       );
-    } catch (err) {
+    } catch {
       toast.error("Failed to update quantity");
     }
   };
@@ -133,7 +140,7 @@ export default function CartPage() {
       toast.success("Order placed successfully!");
       setItems([]);
       setSelectedPickupId("");
-    } catch (err) {
+    } catch {
       toast.error("Failed to place order");
     } finally {
       setPlacingOrder(false);
@@ -145,6 +152,7 @@ export default function CartPage() {
     0
   );
 
+  // 🌀 Loading animation
   if (loading)
     return (
       <div className="flex justify-center items-center h-[60vh]">
@@ -152,6 +160,22 @@ export default function CartPage() {
       </div>
     );
 
+  // 🚪 Not signed in
+  if (!user)
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+        <p className="text-muted-foreground mb-4 text-lg">
+          Please sign in to view your cart.
+        </p>
+        <SignInButton mode="modal">
+          <Button className="bg-black text-white hover:bg-gray-800">
+            Sign In
+          </Button>
+        </SignInButton>
+      </div>
+    );
+
+  // 🛍 Empty cart
   if (!items.length)
     return (
       <div className="text-center py-20 text-muted-foreground">
@@ -162,6 +186,7 @@ export default function CartPage() {
       </div>
     );
 
+  // ✅ Main cart UI
   return (
     <div className="max-w-5xl mx-auto py-10 px-4">
       <Card className="shadow-md border border-border/40">
