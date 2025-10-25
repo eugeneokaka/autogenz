@@ -2,12 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 interface Product {
   id: string;
@@ -16,6 +22,7 @@ interface Product {
   price: number;
   condition: string;
   category?: string;
+  brand?: string;
   images: { imageUrl: string }[];
   seller: {
     firstName?: string;
@@ -27,10 +34,13 @@ export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filtered, setFiltered] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
+  const [brand, setBrand] = useState("");
+  const [condition, setCondition] = useState("all");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Fetch all products once
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -47,30 +57,58 @@ export default function HomePage() {
     fetchProducts();
   }, []);
 
-  const handleFilter = () => {
-    let results = [...products];
-    if (search) {
-      results = results.filter((p) =>
-        p.name.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-    if (minPrice) {
-      results = results.filter((p) => p.price >= parseFloat(minPrice));
-    }
-    if (maxPrice) {
-      results = results.filter((p) => p.price <= parseFloat(maxPrice));
-    }
-    setFiltered(results);
-  };
+  // Debounced filter logic
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      let results = [...products];
+
+      // Search by product name or seller
+      if (search.trim()) {
+        const searchTerm = search.toLowerCase();
+        results = results.filter(
+          (p) =>
+            p.name.toLowerCase().includes(searchTerm) ||
+            p.seller?.firstName?.toLowerCase().includes(searchTerm) ||
+            p.seller?.lastName?.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      // Filter by brand
+      if (brand.trim()) {
+        const brandTerm = brand.toLowerCase();
+        results = results.filter((p) =>
+          p.brand?.toLowerCase().includes(brandTerm)
+        );
+      }
+
+      // Filter by condition (ignore if "all")
+      if (condition !== "all") {
+        results = results.filter(
+          (p) => p.condition.toLowerCase() === condition.toLowerCase()
+        );
+      }
+
+      // Filter by price range
+      if (minPrice)
+        results = results.filter((p) => p.price >= parseFloat(minPrice));
+      if (maxPrice)
+        results = results.filter((p) => p.price <= parseFloat(maxPrice));
+
+      setFiltered(results);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [search, brand, condition, minPrice, maxPrice, products]);
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-4">
       {/* Search + Filters */}
       <div className="sticky top-0 bg-background z-10 pb-3 border-b border-border/40 mb-6">
         <div className="flex flex-wrap items-center gap-3 justify-center">
+          {/* Search by product or seller */}
           <div className="relative flex-1 min-w-[220px] max-w-md">
             <Input
-              placeholder="Search by name..."
+              placeholder="Search by name or seller..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -78,30 +116,45 @@ export default function HomePage() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
           </div>
 
+          {/* Brand search */}
+          <Input
+            placeholder="Filter by brand..."
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+            className="w-40"
+          />
+
+          {/* Condition select */}
+          <Select value={condition} onValueChange={setCondition}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Condition" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="new">New</SelectItem>
+              <SelectItem value="used">Used</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Price filters */}
           <Input
             type="number"
             placeholder="Min Price"
             value={minPrice}
             onChange={(e) => setMinPrice(e.target.value)}
-            className="w-32"
+            className="w-28"
           />
           <Input
             type="number"
             placeholder="Max Price"
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
-            className="w-32"
+            className="w-28"
           />
-          <Button
-            onClick={handleFilter}
-            className="bg-black text-white hover:bg-gray-800"
-          >
-            Apply Filters
-          </Button>
         </div>
       </div>
 
-      {/* Products grid or skeletons */}
+      {/* Product Grid */}
       {loading ? (
         <div className="flex flex-wrap justify-center gap-6">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -131,7 +184,6 @@ export default function HomePage() {
               className="p-0 hover:shadow-md transition-all border border-border/40 rounded-xl overflow-hidden w-72"
             >
               <Link href={`/products/${product.id}`}>
-                {/* Image fills the top completely with no gap */}
                 <div className="relative w-full h-56 overflow-hidden">
                   <Image
                     src={product.images[0]?.imageUrl || "/placeholder.png"}
@@ -155,14 +207,16 @@ export default function HomePage() {
 
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>Condition: {product.condition}</span>
-                    <span>
-                      {product.seller?.firstName
-                        ? `${product.seller.firstName} ${
-                            product.seller.lastName || ""
-                          }`
-                        : "Unknown"}
-                    </span>
+                    <span>{product.brand || "—"}</span>
                   </div>
+                  <p className="text-xs text-gray-400">
+                    Seller:{" "}
+                    {product.seller?.firstName
+                      ? `${product.seller.firstName} ${
+                          product.seller.lastName || ""
+                        }`
+                      : "Unknown"}
+                  </p>
                 </CardContent>
               </Link>
             </Card>

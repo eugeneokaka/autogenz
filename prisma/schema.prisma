@@ -54,6 +54,9 @@ model Product {
   price        Float
   condition    String
   category     String?
+  model        String?
+  brand        String?
+  stock        Int            @default(0)
   createdAt    DateTime       @default(now())
 
   // Relations

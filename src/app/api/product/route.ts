@@ -1,9 +1,32 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // make sure you have this helper
-export async function GET() {
+import { prisma } from "@/lib/prisma";
+
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get("search") || "";
+    const minPrice = searchParams.get("minPrice");
+    const maxPrice = searchParams.get("maxPrice");
+
     const products = await prisma.product.findMany({
+      where: {
+        AND: [
+          search
+            ? {
+                OR: [
+                  { name: { contains: search, mode: "insensitive" } },
+                  { description: { contains: search, mode: "insensitive" } },
+                  { brand: { contains: search, mode: "insensitive" } },
+                  { model: { contains: search, mode: "insensitive" } },
+                  { category: { contains: search, mode: "insensitive" } },
+                ],
+              }
+            : {},
+          minPrice ? { price: { gte: parseFloat(minPrice) } } : {},
+          maxPrice ? { price: { lte: parseFloat(maxPrice) } } : {},
+        ],
+      },
       include: {
         images: true,
         seller: {
@@ -22,6 +45,7 @@ export async function GET() {
     );
   }
 }
+
 export async function POST(req: Request) {
   try {
     const { userId } = await auth();
@@ -29,7 +53,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { name, description, price, condition, category, images } = body;
+    const {
+      name,
+      description,
+      price,
+      condition,
+      category,
+      model,
+      brand,
+      images,
+    } = body;
 
     if (!name || !price || !condition)
       return NextResponse.json(
@@ -37,7 +70,6 @@ export async function POST(req: Request) {
         { status: 400 }
       );
 
-    // find seller
     const seller = await prisma.user.findUnique({
       where: { clerkId: userId },
     });
@@ -45,7 +77,6 @@ export async function POST(req: Request) {
     if (!seller)
       return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    // create product
     const product = await prisma.product.create({
       data: {
         name,
@@ -53,6 +84,8 @@ export async function POST(req: Request) {
         price: parseFloat(price),
         condition,
         category,
+        model,
+        brand,
         sellerId: seller.id,
         images: {
           create: images?.map((url: string) => ({ imageUrl: url })) || [],

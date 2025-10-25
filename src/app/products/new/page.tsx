@@ -25,17 +25,16 @@ export default function CreateProductPage() {
     price: "",
     condition: "New",
     category: "",
+    model: "",
+    brand: "",
   });
 
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
-  ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  ) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  // 🧩 File size validation (max 4MB each)
   const handleFileValidation = (files: FileList) => {
     for (let file of Array.from(files)) {
       const sizeInMB = file.size / (1024 * 1024);
@@ -67,7 +66,6 @@ export default function CreateProductPage() {
       });
 
       const data = await res.json();
-
       if (!res.ok) {
         toast.error(data.error || "❌ Failed to create product");
         return;
@@ -105,7 +103,7 @@ export default function CreateProductPage() {
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Product Name */}
+            {/* Name */}
             <div className="space-y-1">
               <Label htmlFor="name">Product Name</Label>
               <Input
@@ -160,7 +158,7 @@ export default function CreateProductPage() {
               </select>
             </div>
 
-            {/* ✅ Category Dropdown */}
+            {/* Category */}
             <div className="space-y-1">
               <Label htmlFor="category">Category</Label>
               <select
@@ -178,6 +176,30 @@ export default function CreateProductPage() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* ✅ Brand */}
+            <div className="space-y-1">
+              <Label htmlFor="brand">Brand</Label>
+              <Input
+                id="brand"
+                name="brand"
+                value={form.brand}
+                onChange={handleChange}
+                placeholder="e.g. Toyota, Bosch, NGK"
+              />
+            </div>
+
+            {/* ✅ Model */}
+            <div className="space-y-1">
+              <Label htmlFor="model">Model</Label>
+              <Input
+                id="model"
+                name="model"
+                value={form.model}
+                onChange={handleChange}
+                placeholder="e.g. Corolla 2015"
+              />
             </div>
 
             {/* Upload Images */}
@@ -213,7 +235,6 @@ export default function CreateProductPage() {
                 />
               </div>
 
-              {/* Upload Progress */}
               {uploading && (
                 <div className="mt-3">
                   <div className="h-2 bg-muted-foreground/20 rounded-full overflow-hidden">
@@ -228,7 +249,6 @@ export default function CreateProductPage() {
                 </div>
               )}
 
-              {/* Image Previews */}
               {images.length > 0 && (
                 <div className="grid grid-cols-3 gap-2 mt-3">
                   {images.map((url, i) => (
