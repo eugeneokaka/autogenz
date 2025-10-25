@@ -38,9 +38,25 @@ export default function DashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [role, setRole] = useState<string | null>(null); // ✅ track role
+  const [loadingRole, setLoadingRole] = useState(true);
 
   useEffect(() => {
     if (!user) return;
+
+    // ✅ Fetch user role from /api/role
+    const fetchUserRole = async () => {
+      try {
+        const response = await fetch(`/api/role?clerkId=${user.id}`);
+        if (!response.ok) throw new Error("Failed to fetch role");
+        const data = await response.json();
+        setRole(data.role);
+      } catch (error) {
+        console.error("❌ Error fetching user role:", error);
+      } finally {
+        setLoadingRole(false);
+      }
+    };
 
     // ✅ Fetch user's orders
     const fetchOrders = async () => {
@@ -59,7 +75,7 @@ export default function DashboardPage() {
     // ✅ Fetch user's products
     const fetchProducts = async () => {
       try {
-        const response = await fetch(`/api/product?userClerkId=${user.id}`);
+        const response = await fetch(`/api/my-products`);
         if (!response.ok) throw new Error("Failed to fetch products");
         const data = await response.json();
         setProducts(data);
@@ -70,19 +86,32 @@ export default function DashboardPage() {
       }
     };
 
+    fetchUserRole();
     fetchOrders();
     fetchProducts();
   }, [user]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+
+        {/* ✅ Show admin button if user is admin */}
+        {!loadingRole && role === "ADMIN" && (
+          <Link href="/admin/orders">
+            <Button className="bg-black text-white hover:bg-gray-800">
+              View Admin Orders
+            </Button>
+          </Link>
+        )}
+      </div>
 
       {/* Orders Section */}
       <section className="mb-12">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold">My Orders</h2>
         </div>
+
         <div className="grid gap-6">
           {loadingOrders ? (
             <Card className="p-6 text-gray-500">Loading orders...</Card>
@@ -150,6 +179,7 @@ export default function DashboardPage() {
             <Button>Add New Product</Button>
           </Link>
         </div>
+
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {loadingProducts ? (
             <Card className="p-6 text-gray-500">Loading products...</Card>

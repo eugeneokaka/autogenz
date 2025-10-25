@@ -124,7 +124,7 @@ export default function HomePage() {
           No products found
         </p>
       ) : (
-        <div className="flex flex-wrap justify-center gap-8">
+        <div className="flex flex-wrap justify-center gap-8 font-sans">
           {filtered.map((product) => (
             <Card
               key={product.id}
@@ -137,7 +137,7 @@ export default function HomePage() {
                     src={product.images[0]?.imageUrl || "/placeholder.png"}
                     alt={product.name}
                     fill
-                    className="object-cover h-full w-full"
+                    className="object-cover h-full w-full p-3 rounded-3xl"
                   />
                 </div>
 

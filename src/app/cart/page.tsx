@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useUser, SignInButton } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import { Loader2, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,28 +29,12 @@ interface PickupLocation {
 }
 
 export default function CartPage() {
-  const { user, isLoaded } = useUser();
+  const { user } = useUser();
   const [items, setItems] = useState<CartItem[]>([]);
   const [pickupLocations, setPickupLocations] = useState<PickupLocation[]>([]);
   const [selectedPickupId, setSelectedPickupId] = useState("");
   const [loading, setLoading] = useState(true);
   const [placingOrder, setPlacingOrder] = useState(false);
-
-  // 🔹 Show sign-in prompt if user not logged in
-  if (isLoaded && !user) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-        <p className="text-lg mb-4 text-muted-foreground">
-          Please sign in to view your cart.
-        </p>
-        <SignInButton mode="modal">
-          <Button className="bg-black text-white hover:bg-gray-800">
-            Sign In
-          </Button>
-        </SignInButton>
-      </div>
-    );
-  }
 
   // Fetch cart
   useEffect(() => {
@@ -87,6 +71,7 @@ export default function CartPage() {
     fetchPickupLocations();
   }, []);
 
+  // Handle quantity update
   const updateQuantity = async (itemId: string, quantity: number) => {
     if (quantity < 1) return;
     try {
@@ -105,6 +90,7 @@ export default function CartPage() {
     }
   };
 
+  // Handle remove item
   const removeItem = async (itemId: string) => {
     try {
       const res = await fetch(`/api/cart/item`, {
@@ -120,6 +106,7 @@ export default function CartPage() {
     }
   };
 
+  // Place order
   const placeOrder = async () => {
     if (!user) {
       toast.error("Please sign in first");
@@ -158,6 +145,7 @@ export default function CartPage() {
     }
   };
 
+  // Calculate total
   const total = items.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0

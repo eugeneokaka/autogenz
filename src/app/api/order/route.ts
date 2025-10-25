@@ -1,47 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-// export async function GET(req: Request) {
-//   try {
-//     const { searchParams } = new URL(req.url);
-//     const userClerkId = searchParams.get("userClerkId");
-
-//     if (!userClerkId) {
-//       return NextResponse.json({ error: "Missing user ID" }, { status: 400 });
-//     }
-
-//     const user = await prisma.user.findUnique({
-//       where: { clerkId: userClerkId },
-//       select: { id: true },
-//     });
-
-//     if (!user) {
-//       return NextResponse.json({ error: "User not found" }, { status: 404 });
-//     }
-
-//     const orders = await prisma.order.findMany({
-//       where: { buyerId: user.id },
-//       include: {
-//         pickupLocation: true,
-//         items: {
-//           include: {
-//             product: {
-//               include: { images: true },
-//             },
-//           },
-//         },
-//       },
-//       orderBy: { createdAt: "desc" },
-//     });
-
-//     return NextResponse.json(orders);
-//   } catch (error) {
-//     console.error("❌ Error fetching orders:", error);
-//     return NextResponse.json(
-//       { error: "Failed to fetch orders" },
-//       { status: 500 }
-//     );
-//   }
-// }
 
 import { auth } from "@clerk/nextjs/server";
 export async function GET(req: Request) {
@@ -50,31 +8,26 @@ export async function GET(req: Request) {
     if (!userId)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const admin = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!admin || admin.role !== "ADMIN")
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // 🔒 Find the logged-in user in your database
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+    console.log("User found:", user);
 
-    const url = new URL(req.url);
-    const pickupLocationId = url.searchParams.get("pickupLocationId");
-    const orderId = url.searchParams.get("orderId")?.trim() || "";
-    const email = url.searchParams.get("email")?.trim() || "";
+    if (!user)
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+    // ✅ Only fetch orders that belong to this logged-in user
     const orders = await prisma.order.findMany({
-      where: {
-        ...(pickupLocationId ? { pickupLocationId } : {}),
-        ...(orderId ? { id: { contains: orderId, mode: "insensitive" } } : {}),
-        ...(email
-          ? {
-              buyer: {
-                email: { contains: email, mode: "insensitive" },
-              },
-            }
-          : {}),
-      },
+      where: { buyerId: user.id },
       include: {
-        buyer: { select: { firstName: true, lastName: true, email: true } },
+        pickupLocation: true,
         items: {
-          include: { product: { select: { name: true, images: true } } },
+          include: {
+            product: {
+              include: { images: true },
+            },
+          },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -82,7 +35,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(orders);
   } catch (err) {
-    console.error("Error fetching admin orders:", err);
+    console.error("❌ Error fetching user orders:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

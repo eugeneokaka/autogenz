@@ -30,30 +30,42 @@ export default function ProductPage() {
   const { id } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
   const { user } = useUser();
 
   useEffect(() => {
     if (!id) return;
+
     const fetchProduct = async () => {
       try {
         const res = await fetch(`/api/product/${id}`);
         const data = await res.json();
         setProduct(data);
+
+        // Optionally, you can check if the item is already in the cart via API
+        // const cartRes = await fetch(`/api/cart/${user?.id}`);
+        // const cartData = await cartRes.json();
+        // setAdded(cartData.items.some((item: any) => item.productId === id));
       } catch (err) {
         console.error("Error fetching product:", err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchProduct();
-  }, [id]);
+  }, [id, user]);
 
   const handleAddToCart = async () => {
     if (!user) {
       toast.error("Please sign in to add to cart.");
       return;
     }
-    if (!product) return;
+
+    if (!product || added) return;
+
+    setAdding(true);
 
     try {
       const res = await fetch("/api/cart/", {
@@ -62,7 +74,7 @@ export default function ProductPage() {
         body: JSON.stringify({
           userClerkId: user.id,
           productId: product.id,
-          quantity: 1, // fixed quantity
+          quantity: 1,
         }),
       });
 
@@ -73,10 +85,13 @@ export default function ProductPage() {
         return;
       }
 
+      setAdded(true);
       toast.success("Product added to cart!");
     } catch (err) {
       console.error(err);
       toast.error("Something went wrong");
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -150,9 +165,23 @@ export default function ProductPage() {
             {/* Add to Cart Button */}
             <Button
               onClick={handleAddToCart}
-              className="bg-black text-white hover:bg-gray-800 mt-4"
+              disabled={added || adding}
+              className={`mt-4 transition-all duration-200 ${
+                added
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-black text-white hover:bg-gray-800"
+              }`}
             >
-              Add to Cart
+              {adding ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding...
+                </>
+              ) : added ? (
+                "Added to Cart"
+              ) : (
+                "Add to Cart"
+              )}
             </Button>
 
             {/* Seller Info */}

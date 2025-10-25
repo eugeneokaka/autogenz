@@ -246,7 +246,7 @@ export default function AdminOrdersPage() {
             <Card key={order.id}>
               <CardHeader>
                 <CardTitle className="flex justify-between">
-                  <span>Order #{order.id.slice(0, 8)}</span>
+                  <span>Order #{order.id}</span>
                   <span className="text-sm text-gray-500">
                     {new Date(order.createdAt).toLocaleString()}
                   </span>
