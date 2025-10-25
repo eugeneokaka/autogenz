@@ -36,7 +36,6 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [placingOrder, setPlacingOrder] = useState(false);
 
-  // Fetch cart
   useEffect(() => {
     if (!user) return;
     const fetchCart = async () => {
@@ -55,7 +54,6 @@ export default function CartPage() {
     fetchCart();
   }, [user]);
 
-  // Fetch pickup locations
   useEffect(() => {
     const fetchPickupLocations = async () => {
       try {
@@ -71,7 +69,6 @@ export default function CartPage() {
     fetchPickupLocations();
   }, []);
 
-  // Handle quantity update
   const updateQuantity = async (itemId: string, quantity: number) => {
     if (quantity < 1) return;
     try {
@@ -90,7 +87,6 @@ export default function CartPage() {
     }
   };
 
-  // Handle remove item
   const removeItem = async (itemId: string) => {
     try {
       const res = await fetch(`/api/cart/item`, {
@@ -106,7 +102,6 @@ export default function CartPage() {
     }
   };
 
-  // Place order
   const placeOrder = async () => {
     if (!user) {
       toast.error("Please sign in first");
@@ -136,7 +131,7 @@ export default function CartPage() {
       if (!res.ok) throw new Error(data.error);
 
       toast.success("Order placed successfully!");
-      setItems([]); // Clear cart
+      setItems([]);
       setSelectedPickupId("");
     } catch (err) {
       toast.error("Failed to place order");
@@ -145,7 +140,6 @@ export default function CartPage() {
     }
   };
 
-  // Calculate total
   const total = items.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0
@@ -179,51 +173,57 @@ export default function CartPage() {
           {items.map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between border-b pb-4"
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b pb-4 gap-4"
             >
-              <div className="flex items-center gap-4">
+              {/* Product Info */}
+              <div className="flex items-center gap-4 w-full sm:w-auto">
                 {item.product.images?.[0]?.imageUrl ? (
                   <Image
                     src={item.product.images[0].imageUrl}
                     alt={item.product.name}
                     width={80}
                     height={80}
-                    className="rounded-md object-cover border"
+                    className="rounded-md object-cover border w-16 h-16 sm:w-20 sm:h-20"
                   />
                 ) : (
-                  <div className="w-20 h-20 bg-gray-200 rounded-md" />
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-md" />
                 )}
-                <div>
-                  <h3 className="font-medium">{item.product.name}</h3>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium truncate">{item.product.name}</h3>
                   <p className="text-sm text-muted-foreground">
                     KSh {item.product.price.toLocaleString()}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                >
-                  -
-                </Button>
-                <Input
-                  type="number"
-                  value={item.quantity}
-                  onChange={(e) =>
-                    updateQuantity(item.id, Number(e.target.value))
-                  }
-                  className="w-16 text-center"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                >
-                  +
-                </Button>
+              {/* Quantity & Actions */}
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 border rounded-md p-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                    className="px-2"
+                  >
+                    -
+                  </Button>
+                  <Input
+                    type="number"
+                    value={item.quantity}
+                    onChange={(e) =>
+                      updateQuantity(item.id, Number(e.target.value))
+                    }
+                    className="w-12 text-center"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                    className="px-2"
+                  >
+                    +
+                  </Button>
+                </div>
                 <Button
                   variant="destructive"
                   size="icon"
@@ -235,7 +235,7 @@ export default function CartPage() {
             </div>
           ))}
 
-          {/* Select pickup location */}
+          {/* Pickup location */}
           <div className="pt-4">
             <label className="block font-medium mb-2">Pickup Location</label>
             <select
@@ -253,14 +253,14 @@ export default function CartPage() {
           </div>
 
           {/* Summary */}
-          <div className="flex items-center justify-between pt-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between pt-6 gap-4">
             <p className="text-lg font-semibold">
               Total: KSh {total.toLocaleString()}
             </p>
             <Button
               onClick={placeOrder}
               disabled={placingOrder}
-              className="bg-black hover:bg-gray-800 text-white"
+              className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto"
             >
               {placingOrder ? "Placing Order..." : "Place Order"}
             </Button>

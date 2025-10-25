@@ -47,11 +47,9 @@ export default function AdminOrdersPage() {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
-  // 🔍 separate filters
   const [orderIdSearch, setOrderIdSearch] = useState("");
   const [emailSearch, setEmailSearch] = useState("");
 
-  // debounce ref
   const debounceRef = useRef<number | null>(null);
   const DEBOUNCE_MS = 500;
 
@@ -61,8 +59,7 @@ export default function AdminOrdersPage() {
         const res = await fetch("/api/pickup-locations");
         const data = await res.json();
         setLocations(data || []);
-      } catch (err) {
-        console.error(err);
+      } catch {
         toast.error("Failed to load pickup locations");
       } finally {
         setLoadingLocations(false);
@@ -71,9 +68,7 @@ export default function AdminOrdersPage() {
     fetchLocations();
   }, []);
 
-  // fetchOrders function - used by debounced effect, Search button, reset, etc.
   const fetchOrders = async () => {
-    // Build query params. Note: if selectedLocation is empty, we omit pickupLocationId.
     setLoadingOrders(true);
     try {
       const params = new URLSearchParams({
@@ -86,49 +81,29 @@ export default function AdminOrdersPage() {
         params.toString() ? `?${params.toString()}` : ""
       }`;
       const res = await fetch(url);
-      if (!res.ok) {
-        const err = await res
-          .json()
-          .catch(() => ({ error: "Failed to fetch orders" }));
-        throw new Error(err?.error || "Failed to fetch orders");
-      }
+      if (!res.ok) throw new Error("Failed to fetch orders");
       const data = await res.json();
       setOrders(data || []);
     } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to load orders");
+      toast.error(err.message || "Error fetching orders");
     } finally {
       setLoadingOrders(false);
     }
   };
 
-  // Run when selectedLocation changes (immediate)
   useEffect(() => {
-    // Immediately fetch when the location changes
-    // (selectedLocation may be empty after reset - we still call fetchOrders)
     fetchOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLocation]);
 
-  // Debounced live search: runs when orderIdSearch or emailSearch changes
   useEffect(() => {
-    // clear previous debounce
-    if (debounceRef.current) {
-      window.clearTimeout(debounceRef.current);
-    }
-    // set new debounce
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
-      // If both search fields empty, we do nothing here and rely on selectedLocation effect or Search button.
-      // But still call fetchOrders so typing backspace to empty fields reflects results.
       fetchOrders();
       debounceRef.current = null;
     }, DEBOUNCE_MS);
-
     return () => {
-      if (debounceRef.current) {
-        window.clearTimeout(debounceRef.current);
-        debounceRef.current = null;
-      }
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderIdSearch, emailSearch]);
@@ -149,7 +124,7 @@ export default function AdminOrdersPage() {
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status } : o))
       );
-      toast.success("Order updated");
+      toast.success("Order status updated");
     } catch (err: any) {
       toast.error(err.message || "Failed to update order");
     } finally {
@@ -157,15 +132,11 @@ export default function AdminOrdersPage() {
     }
   };
 
-  // Reset: clears everything (pickupLocationId, orderId, email) and refetches
   const handleReset = () => {
     setSelectedLocation("");
     setOrderIdSearch("");
     setEmailSearch("");
-    // Call fetchOrders after clearing state. Small timeout to allow state to flush (not required but avoids race)
-    setTimeout(() => {
-      fetchOrders();
-    }, 0);
+    setTimeout(fetchOrders, 0);
   };
 
   return (
@@ -173,9 +144,8 @@ export default function AdminOrdersPage() {
       <h1 className="text-2xl font-bold mb-6">Admin — Orders</h1>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-wrap items-end gap-4">
-        {/* Pickup location selector */}
-        <div className="min-w-[320px]">
+      <div className="mb-8 flex flex-wrap items-end gap-4">
+        <div className="min-w-[280px]">
           <label className="block text-sm font-medium mb-2">
             Pickup Location
           </label>
@@ -200,7 +170,6 @@ export default function AdminOrdersPage() {
           </Select>
         </div>
 
-        {/* 🔍 Order ID search */}
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium mb-2">Order ID</label>
           <Input
@@ -210,7 +179,6 @@ export default function AdminOrdersPage() {
           />
         </div>
 
-        {/* 🔍 Buyer email search */}
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium mb-2">Buyer Email</label>
           <Input
@@ -233,7 +201,7 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* Orders list */}
+      {/* Orders */}
       {loadingOrders ? (
         <div className="flex items-center gap-2 text-gray-500">
           <Loader2 className="animate-spin" /> Loading orders...
@@ -241,56 +209,74 @@ export default function AdminOrdersPage() {
       ) : orders.length === 0 ? (
         <p className="text-muted-foreground">No orders found.</p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {orders.map((order) => (
-            <Card key={order.id}>
-              <CardHeader>
-                <CardTitle className="flex justify-between">
-                  <span>Order #{order.id}</span>
-                  <span className="text-sm text-gray-500">
+            <Card
+              key={order.id}
+              className="border border-gray-100 shadow-sm hover:shadow-md transition rounded-2xl"
+            >
+              <CardHeader className="pb-2">
+                <CardTitle className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <div>
+                    <span className="block font-semibold text-gray-800">
+                      Order #{order.id}
+                    </span>
+                    <span className="text-sm text-gray-500 sm:hidden block">
+                      {new Date(order.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <span className="text-sm text-gray-500 hidden sm:block">
                     {new Date(order.createdAt).toLocaleString()}
                   </span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="mb-3">
+
+              <CardContent className="space-y-3">
+                <div className="text-sm text-gray-700">
                   <p>
-                    Buyer: {order.buyer?.firstName ?? "Unknown"}{" "}
-                    {order.buyer?.lastName ?? ""} —{" "}
-                    <span className="text-sm text-gray-500">
-                      {order.buyer?.email ?? "No email"}
+                    <strong>Buyer:</strong>{" "}
+                    {order.buyer?.firstName ?? "Unknown"}{" "}
+                    {order.buyer?.lastName ?? ""}{" "}
+                    <span className="text-gray-500">
+                      ({order.buyer?.email ?? "No email"})
                     </span>
                   </p>
-                  <p className="font-semibold">
-                    Total: KSh {order.totalAmount.toLocaleString()}
+                  <p className="font-medium">
+                    Total:{" "}
+                    <span className="text-gray-900">
+                      KSh {order.totalAmount.toLocaleString()}
+                    </span>
                   </p>
                   <p>
-                    Status: <strong>{order.status}</strong>
+                    Status:{" "}
+                    <span className="font-semibold text-gray-900">
+                      {order.status}
+                    </span>
                   </p>
                 </div>
+
                 <div className="border-t pt-3 space-y-2">
                   {order.items.map((it) => (
                     <div
                       key={it.id}
-                      className="flex justify-between items-center"
+                      className="flex justify-between items-center text-sm"
                     >
                       <div>
-                        <p className="font-medium">
+                        <p className="font-medium text-gray-800">
                           {it.product?.name ?? "Deleted product"}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-gray-500">
                           Qty: {it.quantity} • KSh {it.price}
                         </p>
                       </div>
-                      <p className="font-semibold">
+                      <p className="font-semibold text-gray-800">
                         KSh {(it.price * it.quantity).toLocaleString()}
                       </p>
                     </div>
                   ))}
                 </div>
 
-                {/* Actions */}
-                <div className="mt-3 flex gap-2 justify-end">
+                <div className="mt-4 flex flex-wrap justify-end gap-2">
                   <Button
                     disabled={updatingOrderId === order.id}
                     onClick={() => updateStatus(order.id, "READY_FOR_PICKUP")}

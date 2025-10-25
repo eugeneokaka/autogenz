@@ -3,35 +3,37 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Menu, X } from "lucide-react";
+import { useState } from "react";
 
 export default function Navbar() {
   const { isSignedIn } = useUser();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <nav className="w-full bg-white border-b border-gray-200 shadow-sm">
+    <nav className="w-full bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* Brand */}
         <Link href="/" className="text-2xl font-bold text-gray-900">
           <span className="text-white font-bold font-sans bg-gray-900 px-2 py-1 rounded-md">
-            AutopartZ{" "}
+            AutopartZ
           </span>
           <span className="text-gray-500 pl-2.5">garage</span>
         </Link>
 
-        {/* Right Side */}
-        <div className="flex items-center gap-4">
+        {/* Desktop Links */}
+        <div className="hidden md:flex items-center gap-4">
           {isSignedIn && (
-            <Link href={"/dashboard"}>
+            <Link href="/dashboard">
               <Button className="bg-gray-800 hover:bg-gray-300 text-white hover:text-black">
                 Dashboard
               </Button>
             </Link>
           )}
+
           {/* Cart Icon */}
-          <Link href="/cart" className="relative">
+          <Link href="/cart">
             <ShoppingCart className="h-6 w-6 text-gray-700 hover:text-black transition" />
-            {/* You can add a badge here later if you track cart item count */}
           </Link>
 
           {/* Auth Buttons */}
@@ -45,7 +47,61 @@ export default function Navbar() {
             </SignInButton>
           )}
         </div>
+
+        {/* Mobile Right Section */}
+        <div className="flex items-center gap-3 md:hidden">
+          {/* Cart Icon (Mobile) */}
+          <Link href="/cart">
+            <ShoppingCart className="h-6 w-6 text-gray-700 hover:text-black transition" />
+          </Link>
+
+          {/* Hamburger Icon */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-2 rounded-md hover:bg-gray-100 transition"
+          >
+            {menuOpen ? (
+              <X className="h-6 w-6 text-gray-800" />
+            ) : (
+              <Menu className="h-6 w-6 text-gray-800" />
+            )}
+          </button>
+        </div>
       </div>
+
+      {/* Mobile Dropdown Menu */}
+      {menuOpen && (
+        <div className="md:hidden bg-white border-t border-gray-200 shadow-md animate-slideDown">
+          <div className="px-4 py-3 flex flex-col gap-4">
+            {isSignedIn && (
+              <Link
+                href="/dashboard"
+                onClick={() => setMenuOpen(false)}
+                className="text-gray-700 hover:text-black"
+              >
+                <Button className="w-full bg-gray-800 text-white hover:bg-gray-300 hover:text-black">
+                  Dashboard
+                </Button>
+              </Link>
+            )}
+
+            {isSignedIn ? (
+              <div className="flex justify-start">
+                <UserButton afterSignOutUrl="/" />
+              </div>
+            ) : (
+              <SignInButton mode="modal">
+                <Button
+                  className="w-full bg-black text-white hover:bg-gray-800"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Login
+                </Button>
+              </SignInButton>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
