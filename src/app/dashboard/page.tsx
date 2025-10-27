@@ -36,11 +36,23 @@ export default function DashboardPage() {
   const { user } = useUser();
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [role, setRole] = useState<string | null>(null);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
   useEffect(() => {
     if (!user) return;
+
+    // 🧩 Fetch user role
+    const fetchRole = async () => {
+      try {
+        const res = await fetch(`/api/role?clerkId=${user.id}`);
+        const data = await res.json();
+        if (res.ok) setRole(data.role);
+      } catch (error) {
+        console.error("❌ Error fetching role:", error);
+      }
+    };
 
     const fetchOrders = async () => {
       try {
@@ -68,6 +80,7 @@ export default function DashboardPage() {
       }
     };
 
+    fetchRole();
     fetchOrders();
     fetchProducts();
   }, [user]);
@@ -80,17 +93,19 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold">Dashboard</h1>
 
-        <div className="flex gap-3">
-          {/* 🟢 Admin Orders Button */}
-          <Link href="/admin/orders">
-            <Button variant="outline" size="lg">
-              🧾 View Admin Orders
-            </Button>
-          </Link>
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+          {/* ✅ Admin Orders Button (only visible for admins) */}
+          {role === "ADMIN" && (
+            <Link href="/admin/orders" className="w-full sm:w-auto">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                🧾 View Admin Orders
+              </Button>
+            </Link>
+          )}
 
-          {/* 🟢 Add New Product Button */}
-          <Link href="/products/new">
-            <Button size="lg" className="bg-black text-white">
+          {/* ✅ Add New Product Button */}
+          <Link href="/products/new" className="w-full sm:w-auto">
+            <Button size="lg" className="bg-black text-white w-full sm:w-auto">
               + Add New Product
             </Button>
           </Link>
